@@ -43,6 +43,10 @@ The audio files are pre-processed as mel-spectrograms, as described in the paper
 
 To be documented
 
+## 🧪 Testing the Model
+
+To be documented
+
 ## 🔁 Running the Synchronisation
 
 To be documented
