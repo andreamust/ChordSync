@@ -9,7 +9,7 @@ from typing import Tuple
 
 import jams
 import torch
-from data_preprocessing.jams_processing import JAMSProcessor
+from ChordSync.data.jams_processing import JAMSProcessor
 from data_preprocessing.transformations import (
     chroma_transformation,
     hcqt_transformation,

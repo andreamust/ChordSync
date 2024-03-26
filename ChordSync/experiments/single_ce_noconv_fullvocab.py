@@ -9,7 +9,7 @@ import lightning as L
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from data_loaders.choco_audio_datamodule import ChocoAudioDataModule
+from data.choco_audio_datamodule import ChocoAudioDataModule
 from evaluation.mireaval_metrics import EvaluateAlignment
 
 #

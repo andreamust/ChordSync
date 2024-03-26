@@ -13,7 +13,7 @@ from collections import defaultdict
 
 import lightning as L
 import torch
-from augmentation.augmentations import AudioAugmentation
+from ChordSync.augmentations import AudioAugmentation
 from torch.utils.data import DataLoader, Dataset
 from utils.chord_utils import (
     MajminChordEncoder,

@@ -24,8 +24,6 @@ from utils.chord_utils import (
     SimpleChordEncoder,
 )
 
-from TPSD.tpsd.tps_comparison import TpsComparison
-
 
 class PumppChordConverter(ChordTagTransformer):
     def __init__(self, vocab="3567s", sparse=True):
@@ -268,43 +266,6 @@ class JAMSProcessor:
             torch.Tensor: A mode sequence of shape (n_frames, 1).
         """
         return self._convert_sequence(annotation, encoding=Encoding.SIMPLIFIED, pad_value=SimpleChordEncoder.N.value)  # type: ignore
-
-    def tps_sequence(self, annotation: jams.Annotation) -> torch.Tensor:
-        """
-        Transforms the given JAMS annotation into a mode sequence.
-
-        Args:
-            annotation (jams.Annotation): The JAMS annotation to transform.
-
-        Returns:
-            torch.Tensor: A mode sequence of shape (n_frames, 1).
-        """
-
-        def convert_to_tps(chord: str) -> float:
-            """
-            Converts a chord symbol to a TPS value.
-
-            Args:
-                chord (str): The chord symbol to convert.
-
-            Returns:
-                float: The TPS value.
-            """
-            key = "C:maj"
-            if chord == "N":
-                return 28
-            tps = TpsComparison(chord_a=chord, key_a=key, chord_b=key, key_b=key)
-            return int(tps.distance() * 2) + 1
-
-        intervals, chords = annotation.to_interval_values()
-        converted = np.array([convert_to_tps(c) for c in chords])
-
-        converted = converted.reshape(-1, 1)
-
-        # unroll the sequence
-        converted = self._create_sequence(intervals, converted, fill=28)
-
-        return torch.Tensor(converted).type(torch.float)
 
     def complete_unique(self, annotation: jams.Annotation) -> torch.Tensor:
         """
