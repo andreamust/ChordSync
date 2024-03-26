@@ -33,7 +33,7 @@ All the `JAMS` files containing the annotations and the adio files should be pla
 For pre-processing the data, run:
 
 ```bash
-python ChordSync/data_preprocessing.py --audio_folder path/to/audio/folder --jams_folder path/to/jams/folder -max_sequence_length 15 --excerpt_per_song 25 --excerpt_distance 12 --cache_name cache --device cpu --num_workers 4
+python ChordSync/data/data_preprocessing.py --audio_folder path/to/audio/folder --jams_folder path/to/jams/folder -max_sequence_length 15 --excerpt_per_song 25 --excerpt_distance 12 --cache_name cache --device cpu --num_workers 4
 ```
 
 A new folder named `cache` will be created, containing the pre-processed data.
