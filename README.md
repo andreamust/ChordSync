@@ -5,7 +5,7 @@ This repository contains the code for the paper "ChordSync: A Conformer-based Au
 
 The code contains both the code for re-training the model and reproducing the experiments presented in the paper and the code for running the synchronisation on new audio files.
 
-## Environment Setup and Installation
+## 🛠️ Environment Setup and Installation
 
 The code is written in Python 3.11 and [PyTorch](https://pytorch.org/) 2.2.0.
 We suggest to create a new conda environment to run the code.
@@ -22,9 +22,9 @@ To install the required packages, run:
 pip install -r requirements.txt
 ```
 
-## Training the Model
+## 🧠 Training the Model
 
-### Data Preparation
+### 📊 Data Preparation
 
 The model is trained using a subset of the chord annotations included [ChoCo](https://github.com/smahub/ChoCo), the Chord Corpus dataset.
 However, the audio files are not included in this repository for copyright reasons.
@@ -39,15 +39,15 @@ python ChordSync/data_preprocessing.py --audio_folder path/to/audio/folder --jam
 A new folder named `cache` will be created, containing the pre-processed data.
 The audio files are pre-processed as mel-spectrograms, as described in the paper. However, it is possible to extract other features by passing the `--feature_type` argument.
 
-### Training
+### 🏋️‍♂️ Training
 
 To be documented
 
-## Running the Synchronisation
+## 🔁 Running the Synchronisation
 
 To be documented
 
-## Citation
+## 📝 Citation
 
 Paper under review.
 
