@@ -4,6 +4,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 import os
+from argparse import ArgumentParser
 from pathlib import Path
 from typing import Tuple
 
@@ -11,12 +12,13 @@ import jams
 import librosa
 import numpy as np
 import torch
+from costants import Paths
 from jams_processing import JAMSProcessor
 from joblib import Parallel, delayed
 from librosa import load
 from torch.utils.data import Dataset
 from torchaudio.transforms import MelSpectrogram, Resample
-from transformations import chroma_transformation, hcqt_transformation
+from tqdm import tqdm
 from utils.chord_utils import (
     MajminChordEncoder,
     ModeEncoder,
@@ -113,7 +115,7 @@ class ChocoAudioPreprocessor(Dataset):
         """
         return len(self.song_list)
 
-    def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, dict]:
         """
         Returns the audio signal and chord annotation for the given index.
 
@@ -135,7 +137,7 @@ class ChocoAudioPreprocessor(Dataset):
         audio_path = self.audio_path / audio_file
         file_name = audio_path.stem
         file_path = self.jams_path / f"{file_name}.jams"
-        print(f"Loading file {idx} of {len(self.song_list)}: {file_name}@{onset}")
+        # print(f"Loading file {idx} of {len(self.song_list)}: {file_name}@{onset}")
 
         # load audio
         sample_onset = int(onset * self.target_sample_rate)
@@ -152,44 +154,18 @@ class ChocoAudioPreprocessor(Dataset):
         assert (
             annotation and len(annotation.data) > 0
         ), f"File {file_name} @ {onset} has no annotation. \n {annotation}"
-        annotation = self._chord_sequence_vector(annotation)
+        annotation = self._chord_sequence_dict(annotation)
 
         # apply transform
-        if self.transform == "chroma":
-            signal = chroma_transformation(
-                signal=signal,
-                n_chroma=12,
-                hop_length=512,
-                n_fft=1024,
-            )
-            signal = torch.from_numpy(signal)  # .to(self.device)
-        elif self.transform == "hcqt":
-            signal = hcqt_transformation(
-                signal,
-                sr=self.target_sample_rate,
-                fs_hcqt_target=20,
-                bins_per_semitone=3,
-                num_octaves=5,
-                num_harmonics=5,
-                num_subharmonics=1,
-                center_bins=True,
-            )
-            signal = torch.from_numpy(signal)  # .to(self.device)
-        elif self.transform == "cqt":
+        if self.transform == "cqt":
             signal = signal.numpy()
             signal = np.abs(
                 librosa.cqt(signal, sr=self.target_sample_rate, hop_length=1024)
             )
-            signal = torch.from_numpy(signal)  # .to(self.device)
+            signal = torch.from_numpy(signal)
             print(signal.shape)
         elif self.transform:
-            signal = self.transform(signal)  # .to(self.device)
-
-        # assure that the signal and the annotation have the same length
-        assert signal.shape[2] == annotation.shape[0], (
-            f"Signal and annotation have different length: "
-            f"{signal.shape[2]} != {annotation.shape[0]}"
-        )
+            signal = self.transform(signal)
 
         excerpt_id = f"{file_name}-{onset}"
 
@@ -306,60 +282,6 @@ class ChocoAudioPreprocessor(Dataset):
 
         return song_list
 
-    def _chord_sequence_vector(self, jams_annotation: jams.Annotation):
-        """
-        Returns the chord sequence vector for the given JAMS annotation.
-
-        Args:
-            jams_annotation (jams.Annotation): The JAMS annotation to get the
-                chord sequence vector for.
-            onset (int): The onset of the audio file in seconds.
-
-        Returns:
-            np.ndarray: The chord sequence vector.
-        """
-        preprocessor = JAMSProcessor(
-            sr=self.target_sample_rate,
-            hop_length=1024,
-            duration=self._max_sequence_length,
-        )
-        # get the chord sequences
-        simplified_sequence = preprocessor.simplified_sequence(jams_annotation)
-        complete_sequence = preprocessor.complete_sequence(jams_annotation)
-        # tps_sequence = preprocessor.tps_sequence(jams_annotation)
-        # onehot_sequence = preprocessor.onehot_sequence(jams_annotation)
-        # majmin_sequence = preprocessor.majmin_sequence(jams_annotation)
-        root_sequence = preprocessor.root_sequence(jams_annotation)
-        # mode_sequence = preprocessor.mode_sequence(jams_annotation)
-        onsets_sequence = preprocessor.onsets_sequence(jams_annotation)
-        # get the sequences with non-repeating chords
-        simplified_symbols = preprocessor.simplified_unique(jams_annotation)
-        complete_symbols = preprocessor.complete_unique(jams_annotation)
-        # majmin_symbols = preprocessor.majmin_unique(jams_annotation)
-        # root_symbols = preprocessor.root_unique(jams_annotation)
-        # mode_symbols = preprocessor.mode_unique(jams_annotation)
-
-        # stack the sequences
-        sequence = torch.cat(
-            (
-                # onehot_sequence,
-                simplified_sequence,
-                complete_sequence,
-                # majmin_sequence,
-                root_sequence,
-                # mode_sequence,
-                onsets_sequence,
-                simplified_symbols,
-                complete_symbols,
-                # majmin_symbols,
-                # root_symbols,
-                # mode_symbols,
-            ),
-            dim=1,
-        )
-
-        return sequence
-
     def _chord_sequence_dict(self, jams_annotation: jams.Annotation):
         """
         Returns the chord sequence vector for the given JAMS annotation.
@@ -384,20 +306,24 @@ class ChocoAudioPreprocessor(Dataset):
         root_sequence = preprocessor.root_sequence(jams_annotation)
         mode_sequence = preprocessor.mode_sequence(jams_annotation)
         onsets_sequence = preprocessor.onsets_sequence(jams_annotation)
+        complete_sequence = preprocessor.complete_sequence(jams_annotation)
         # get the sequences with non-repeating chords
         simplified_symbols = preprocessor.simplified_unique(jams_annotation)
         majmin_symbols = preprocessor.majmin_unique(jams_annotation)
         root_symbols = preprocessor.root_unique(jams_annotation)
         mode_symbols = preprocessor.mode_unique(jams_annotation)
+        complete_symbols = preprocessor.complete_unique(jams_annotation)
 
         # return the dictionary
         return {
             "simplified_sequence": simplified_sequence,
+            "complete_sequence": complete_sequence,
             "majmin_sequence": majmin_sequence,
             "root_sequence": root_sequence,
             "mode_sequence": mode_sequence,
             "onsets_sequence": onsets_sequence,
             "simplified_symbols": simplified_symbols,
+            "complete_symbols": complete_symbols,
             "majmin_symbols": majmin_symbols,
             "root_symbols": root_symbols,
             "mode_symbols": mode_symbols,
@@ -436,7 +362,7 @@ def _save_cache(dataset: Dataset, cache_path: Path, num_workers: int = 4):
     # cache the preprocessing results
     Parallel(n_jobs=num_workers)(
         delayed(_parallel_preprocess)(dataset, idx, cache_path)
-        for idx in range(len(dataset))  # type: ignore
+        for idx in tqdm(range(len(dataset)))  # type: ignore
     )
 
 
@@ -501,21 +427,35 @@ def preprocess_data(
 
 
 if __name__ == "__main__":
-    audio_path = "/media/data/andrea/choco_audio/audio"
-    jams_path = "/media/data/andrea/choco_audio/jams"
 
     mel_spectrogram = MelSpectrogram(
         sample_rate=22_050, n_fft=2048, hop_length=1024, n_mels=128
     )
 
+    parser = ArgumentParser()
+    parser.add_argument("--audio_path", type=str, default=Paths.audio.value)
+    parser.add_argument("--jams_path", type=str, default=Paths.jams.value)
+    parser.add_argument("--max_sequence_length", type=int, default=15)
+    parser.add_argument("--excerpt_per_song", type=int, default=25)
+    parser.add_argument("--excerpt_distance", type=int, default=13)
+    parser.add_argument("--cache_name", type=str, default="mel_dict")
+    parser.add_argument("--device", type=str, default="cpu")
+    parser.add_argument("--transform", type=str, default=mel_spectrogram)
+    parser.add_argument("--num_workers", type=int, default=4)
+
+    args = parser.parse_args()
+
     preprocess_data(
-        audio_path=audio_path,
-        jams_path=jams_path,
-        max_sequence_length=15,
-        excerpt_distance=13,
-        excerpt_per_song=25,
-        cache_name="mel_all_fullvocab",
-        transform=mel_spectrogram,
-        device="cpu",
-        num_workers=4,
+        audio_path=args.audio_path,
+        jams_path=args.jams_path,
+        max_sequence_length=args.max_sequence_length,
+        excerpt_distance=args.excerpt_distance,
+        excerpt_per_song=args.excerpt_per_song,
+        cache_name=args.cache_name,
+        transform=args.transform,
+        device=args.device,
+        num_workers=args.num_workers,
     )
+
+    # example usage
+    # python preprocess_data.py --audio_path /path/to/audio --jams_path /path/to/jams --max_sequence_length 15 --excerpt_per_song 3 --excerpt_distance 30 --cache_name cache_cqt_short --device cpu --transform cqt --num_workers 4
