@@ -318,20 +318,20 @@ class ChocoAudioPreprocessor(Dataset):
 
         # return the dictionary
         return {
-            "simplified_sequence": simplified_sequence.type(torch.long),
-            "complete_sequence": complete_sequence.type(torch.long),
-            "majmin_sequence": majmin_sequence.type(torch.long),
-            "root_sequence": root_sequence.type(torch.long),
-            "bass_sequence": bass_sequence.type(torch.long),
-            "mode_sequence": mode_sequence.type(torch.long),
-            "onsets_sequence": onsets_sequence.type(torch.float),
+            "simplified": simplified_sequence.type(torch.long),
+            "complete": complete_sequence.type(torch.long),
+            "majmin": majmin_sequence.type(torch.long),
+            "root": root_sequence.type(torch.long),
+            "bass": bass_sequence.type(torch.long),
+            "mode": mode_sequence.type(torch.long),
+            "onehot": onehot_sequence.type(torch.float),
+            "onsets": onsets_sequence.type(torch.float),
             "simplified_symbols": simplified_symbols.type(torch.long),
             "complete_symbols": complete_symbols.type(torch.long),
             "majmin_symbols": majmin_symbols.type(torch.long),
             "root_symbols": root_symbols.type(torch.long),
             "mode_symbols": mode_symbols.type(torch.long),
             "bass_symbols": bass_symbols.type(torch.long),
-            "onehot_sequence": onehot_sequence.type(torch.float),
         }
 
 

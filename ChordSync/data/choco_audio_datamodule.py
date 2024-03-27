@@ -117,13 +117,13 @@ class ChocoAudioDataModule(L.LightningDataModule):
 
         # vocab size
         self.vocabularies = {
-            "simplified_sequence": len(SimpleChordEncoder),
-            "root_sequence": len(NoteEncoder),
-            "bass_sequence": len(NoteEncoder),
-            "mode_sequence": len(ModeEncoder),
-            "majmin_sequence": len(MajminChordEncoder),
-            "onehot_sequence": 12,
-            "complete_sequence": 170,
+            "simplified": len(SimpleChordEncoder),
+            "root": len(NoteEncoder),
+            "bass": len(NoteEncoder),
+            "mode": len(ModeEncoder),
+            "majmin": len(MajminChordEncoder),
+            "onehot": 12,
+            "complete": 170,
         }
 
         # Data loaders parameters
