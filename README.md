@@ -41,11 +41,16 @@ The audio files are pre-processed as mel-spectrograms, as described in the paper
 
 ### 🏋️‍♂️ Training
 
-To be documented
+The model training uses PyTorch Lightning. For training the model using the
+parameters described in the paper, run:
 
-## 🧪 Testing the Model
+```bash
+python ChordSync/train.py
+```
 
-To be documented
+<!-- ## 🧪 Testing the Model
+
+To be documented -->
 
 ## 🔁 Running the Synchronisation
 
