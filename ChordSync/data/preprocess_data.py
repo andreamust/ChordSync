@@ -39,6 +39,7 @@ class ChocoAudioPreprocessor(Dataset):
         jams_path: str,
         transform=None,
         target_sample_rate: int = 22_050,
+        hop_length: int = 1024,
         max_sequence_length: int = 15,
         excerpt_per_song: int = 3,
         excerpt_distance: int = 30,
@@ -57,6 +58,7 @@ class ChocoAudioPreprocessor(Dataset):
         self.audio_path = Path(audio_path)
         self.jams_path = Path(jams_path)
         self.target_sample_rate = target_sample_rate
+        self.hop_length = hop_length
         self.device = device
         self.transform = transform
         self.excerpt_per_song = excerpt_per_song
@@ -137,12 +139,11 @@ class ChocoAudioPreprocessor(Dataset):
         audio_path = self.audio_path / audio_file
         file_name = audio_path.stem
         file_path = self.jams_path / f"{file_name}.jams"
-        # print(f"Loading file {idx} of {len(self.song_list)}: {file_name}@{onset}")
 
         # load audio
         sample_onset = int(onset * self.target_sample_rate)
         signal, sr = load(audio_path, sr=None, mono=False)
-        signal = torch.from_numpy(signal)
+        signal = torch.from_numpy(signal).to(self.device)
         signal = self._resample_if_necessary(signal, sr)
         signal = self._mix_down_if_necessary(signal)
         signal = self._cut_if_necessary(signal, sample_onset)
@@ -160,12 +161,13 @@ class ChocoAudioPreprocessor(Dataset):
         if self.transform == "cqt":
             signal = signal.numpy()
             signal = np.abs(
-                librosa.cqt(signal, sr=self.target_sample_rate, hop_length=1024)
+                librosa.cqt(
+                    signal, sr=self.target_sample_rate, hop_length=self.hop_length
+                )
             )
-            signal = torch.from_numpy(signal)
-            print(signal.shape)
+            signal = torch.from_numpy(signal).to(self.device)
         elif self.transform:
-            signal = self.transform(signal)
+            signal = self.transform(signal).to(self.device)
 
         excerpt_id = f"{file_name}-{onset}"
 
@@ -199,8 +201,8 @@ class ChocoAudioPreprocessor(Dataset):
             sample rate matches the target sample rate.
         """
         if sr != self.target_sample_rate:
-            resample = Resample(int(sr), self.target_sample_rate)
-            signal = resample(signal)
+            resample = Resample(int(sr), self.target_sample_rate).to(self.device)
+            signal = resample(signal).to(self.device)
         return signal
 
     @staticmethod
@@ -296,7 +298,7 @@ class ChocoAudioPreprocessor(Dataset):
         """
         preprocessor = JAMSProcessor(
             sr=self.target_sample_rate,
-            hop_length=512,
+            hop_length=self.hop_length,
             duration=self._max_sequence_length,
         )
         # get the chord sequences
@@ -318,20 +320,20 @@ class ChocoAudioPreprocessor(Dataset):
 
         # return the dictionary
         return {
-            "simplified": simplified_sequence.type(torch.long),
-            "complete": complete_sequence.type(torch.long),
-            "majmin": majmin_sequence.type(torch.long),
-            "root": root_sequence.type(torch.long),
-            "bass": bass_sequence.type(torch.long),
-            "mode": mode_sequence.type(torch.long),
-            "onehot": onehot_sequence.type(torch.float),
-            "onsets": onsets_sequence.type(torch.float),
-            "simplified_symbols": simplified_symbols.type(torch.long),
-            "complete_symbols": complete_symbols.type(torch.long),
-            "majmin_symbols": majmin_symbols.type(torch.long),
-            "root_symbols": root_symbols.type(torch.long),
-            "mode_symbols": mode_symbols.type(torch.long),
-            "bass_symbols": bass_symbols.type(torch.long),
+            "simplified": simplified_sequence.squeeze().type(torch.long),
+            "complete": complete_sequence.squeeze().type(torch.long),
+            "majmin": majmin_sequence.squeeze().type(torch.long),
+            "root": root_sequence.squeeze().type(torch.long),
+            "bass": bass_sequence.squeeze().type(torch.long),
+            "mode": mode_sequence.squeeze().type(torch.long),
+            "onehot": onehot_sequence.squeeze().type(torch.float),
+            "onsets": onsets_sequence.squeeze().type(torch.float),
+            "simplified_symbols": simplified_symbols.squeeze().type(torch.long),
+            "complete_symbols": complete_symbols.squeeze().type(torch.long),
+            "majmin_symbols": majmin_symbols.squeeze().type(torch.long),
+            "root_symbols": root_symbols.squeeze().type(torch.long),
+            "mode_symbols": mode_symbols.squeeze().type(torch.long),
+            "bass_symbols": bass_symbols.squeeze().type(torch.long),
         }
 
 
@@ -378,7 +380,7 @@ def preprocess_data(
     excerpt_per_song: int = 3,
     excerpt_distance: int = 30,
     cache_name: str = "cache_cqt_short",
-    device: str | torch.device = "gpu",
+    device: str | torch.device = "cuda",
     transform: str | torch.nn.Module | None = None,
     num_workers: int = 4,
 ) -> None:
@@ -435,7 +437,7 @@ if __name__ == "__main__":
 
     mel_spectrogram = MelSpectrogram(
         sample_rate=22_050, n_fft=2048, hop_length=1024, n_mels=128
-    )
+    ).to("cuda")
 
     parser = ArgumentParser()
     parser.add_argument("--audio_path", type=str, default=Paths.audio.value)
@@ -444,9 +446,9 @@ if __name__ == "__main__":
     parser.add_argument("--excerpt_per_song", type=int, default=25)
     parser.add_argument("--excerpt_distance", type=int, default=13)
     parser.add_argument("--cache_name", type=str, default="mel_dict")
-    parser.add_argument("--device", type=str, default="cpu")
+    parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--transform", type=str, default=mel_spectrogram)
-    parser.add_argument("--num_workers", type=int, default=4)
+    parser.add_argument("--num_workers", type=int, default=8)
 
     args = parser.parse_args()
 

@@ -13,6 +13,7 @@ from collections import defaultdict
 
 import lightning as L
 import torch
+from augmentations import AudioAugmentation
 from torch.utils.data import DataLoader, Dataset
 from utils.chord_utils import (
     MajminChordEncoder,
@@ -20,8 +21,6 @@ from utils.chord_utils import (
     NoteEncoder,
     SimpleChordEncoder,
 )
-
-from ChordSync.augmentations import AudioAugmentation
 
 
 def _get_exerpt_name(name: str) -> str:
