@@ -9,7 +9,7 @@ from torchaudio.models import Conformer
 from utils.torch_utils import PositionalEncoding
 
 
-class ConvolutionalConformer(L.LightningModule):
+class ConformerModel(L.LightningModule):
     """
     TBD
     """
@@ -39,21 +39,25 @@ class ConvolutionalConformer(L.LightningModule):
         # loss
         self.loss = criterion
 
-        # positional encoding
-        self.positional_encoding = PositionalEncoding(
-            128,
-        )
-
         # unpack kwargs for convoltuion layers and conformer
-        self.conformer_kwargs = kwargs.get("conformer_kwargs", {})
+        self.conformer_kwargs = kwargs["conformer_kwargs"]
 
         # get dimensions
-        self.conformer_dimension = self.conformer_kwargs.get("input_dim", 128)
+        self.conformer_dimension = self.conformer_kwargs["input_dim"]
+        self.input_dim = 128
+
+        # positional encoding
+        self.positional_encoding = PositionalEncoding(
+            self.conformer_dimension, dropout=0.2
+        )
 
         # convolution layers
         self.convolution = None
 
         if convolution:
+            # recompute input dimensionality
+            self.input_dim = 64
+
             # convolution layers
             self.convolution = nn.Sequential(
                 nn.Conv2d(
@@ -70,8 +74,9 @@ class ConvolutionalConformer(L.LightningModule):
 
         # adapt dimensionality for the first
         self.fully_connected_preconformer = nn.Sequential(
-            nn.Linear(64, self.conformer_dimension),
+            nn.Linear(self.input_dim, self.conformer_dimension),
             nn.Dropout(0.4),
+            nn.LeakyReLU(negative_slope=0.3),
         )
 
         # convolution layers
@@ -100,21 +105,17 @@ class ConvolutionalConformer(L.LightningModule):
 
         # convolution
         if self.convolution:
-            # x = x.squeeze(1).permute(0, 2, 1)
-            # x = self.positional_encoding(x)
-            # x = x.permute(0, 2, 1)
-            # x = x.unsqueeze(1)
-            convolution = self.convolution(x)
+            x = self.convolution(x)
 
-            # reshape for conformer (B, T, N)
-            convolution = convolution.squeeze()
-            x = convolution.permute(0, 2, 1)
-
-        # positional encoding
-        x = self.positional_encoding(x)
+        # reshape for conformer (B, T, N)
+        x = x.squeeze(1)
+        x = x.permute(0, 2, 1)
 
         # fully connected
-        fc_preconformer = self.fully_connected_preconformer(convolution)
+        fc_preconformer = self.fully_connected_preconformer(x)
+
+        # positional encoding
+        fc_preconformer = self.positional_encoding(fc_preconformer)
 
         # conformer
         conformer_encoder, _ = self.conformer_encoder(fc_preconformer, durations)
