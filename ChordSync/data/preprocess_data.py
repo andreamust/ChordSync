@@ -301,32 +301,37 @@ class ChocoAudioPreprocessor(Dataset):
         )
         # get the chord sequences
         simplified_sequence = preprocessor.simplified_sequence(jams_annotation)
-        # onehot_sequence = preprocessor.onehot_sequence(jams_annotation)
+        onehot_sequence = preprocessor.onehot_sequence(jams_annotation)
         majmin_sequence = preprocessor.majmin_sequence(jams_annotation)
         root_sequence = preprocessor.root_sequence(jams_annotation)
         mode_sequence = preprocessor.mode_sequence(jams_annotation)
         onsets_sequence = preprocessor.onsets_sequence(jams_annotation)
         complete_sequence = preprocessor.complete_sequence(jams_annotation)
+        bass_sequence = preprocessor.bass_sequence(jams_annotation)
         # get the sequences with non-repeating chords
         simplified_symbols = preprocessor.simplified_unique(jams_annotation)
         majmin_symbols = preprocessor.majmin_unique(jams_annotation)
         root_symbols = preprocessor.root_unique(jams_annotation)
         mode_symbols = preprocessor.mode_unique(jams_annotation)
         complete_symbols = preprocessor.complete_unique(jams_annotation)
+        bass_symbols = preprocessor.bass_unique(jams_annotation)
 
         # return the dictionary
         return {
-            "simplified_sequence": simplified_sequence,
-            "complete_sequence": complete_sequence,
-            "majmin_sequence": majmin_sequence,
-            "root_sequence": root_sequence,
-            "mode_sequence": mode_sequence,
-            "onsets_sequence": onsets_sequence,
-            "simplified_symbols": simplified_symbols,
-            "complete_symbols": complete_symbols,
-            "majmin_symbols": majmin_symbols,
-            "root_symbols": root_symbols,
-            "mode_symbols": mode_symbols,
+            "simplified_sequence": simplified_sequence.type(torch.long),
+            "complete_sequence": complete_sequence.type(torch.long),
+            "majmin_sequence": majmin_sequence.type(torch.long),
+            "root_sequence": root_sequence.type(torch.long),
+            "bass_sequence": bass_sequence.type(torch.long),
+            "mode_sequence": mode_sequence.type(torch.long),
+            "onsets_sequence": onsets_sequence.type(torch.float),
+            "simplified_symbols": simplified_symbols.type(torch.long),
+            "complete_symbols": complete_symbols.type(torch.long),
+            "majmin_symbols": majmin_symbols.type(torch.long),
+            "root_symbols": root_symbols.type(torch.long),
+            "mode_symbols": mode_symbols.type(torch.long),
+            "bass_symbols": bass_symbols.type(torch.long),
+            "onehot_sequence": onehot_sequence.type(torch.float),
         }
 
 
@@ -458,4 +463,6 @@ if __name__ == "__main__":
     )
 
     # example usage
-    # python preprocess_data.py --audio_path /path/to/audio --jams_path /path/to/jams --max_sequence_length 15 --excerpt_per_song 3 --excerpt_distance 30 --cache_name cache_cqt_short --device cpu --transform cqt --num_workers 4
+    # python preprocess_data.py --audio_path /path/to/audio --jams_path /path/to/jams
+    # --max_sequence_length 15 --excerpt_per_song 3 --excerpt_distance 30
+    # --cache_name cache_cqt_short --device cpu --transform cqt --num_workers 4

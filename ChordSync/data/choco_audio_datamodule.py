@@ -13,7 +13,6 @@ from collections import defaultdict
 
 import lightning as L
 import torch
-from ChordSync.augmentations import AudioAugmentation
 from torch.utils.data import DataLoader, Dataset
 from utils.chord_utils import (
     MajminChordEncoder,
@@ -21,6 +20,8 @@ from utils.chord_utils import (
     NoteEncoder,
     SimpleChordEncoder,
 )
+
+from ChordSync.augmentations import AudioAugmentation
 
 
 def _get_exerpt_name(name: str) -> str:
@@ -121,6 +122,8 @@ class ChocoAudioDataModule(L.LightningDataModule):
             "bass_sequence": len(NoteEncoder),
             "mode_sequence": len(ModeEncoder),
             "majmin_sequence": len(MajminChordEncoder),
+            "onehot_sequence": 12,
+            "complete_sequence": 170,
         }
 
         # Data loaders parameters

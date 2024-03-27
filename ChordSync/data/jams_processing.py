@@ -430,27 +430,5 @@ if __name__ == "__main__":
     # append to annotation a fake N
     processor = JAMSProcessor()
 
-    simplified_symbols = processor.simplified_sequence(annotation)  # type: ignore
-    unique_simplified = processor.simplified_unique(annotation)  # type: ignore
-    # # print(unique_simplified)
-    # mode_symbols = processor.mode_sequence(annotation)  # type: ignore
-    # unique_modes = processor.mode_unique(annotation)  # type: ignore
-    # # print(unique_modes.T)
-    # root_symbols = processor.root_sequence(annotation)  # type: ignore
-    # unique_roots = processor.root_unique(annotation)  # type: ignore
-    # # print(unique_roots.T)
-    # # print(root_symbols.T)
-    # bass_symbols = processor.bass_sequence(annotation)  # type: ignore
-    # unique_basses = processor.bass_unique(annotation)  # type: ignore
-    # # print(unique_basses.T)
-    # majmin_symbols = processor.majmin_sequence(annotation)  # type: ignore
-    # unique_majmin = processor.majmin_unique(annotation)  # type: ignore
-    # print(majmin_symbols.T)
-    # print(
-    #     unique_simplified.shape,
-    #     unique_roots.shape,
-    #     unique_modes.shape,
-    # )
-    tps_sequence = processor.complete_unique(annotation)  # type: ignore
-    print(tps_sequence)
-    print(tps_sequence.shape, unique_simplified.shape)
+    converter = PumppChordConverter()
+    print(converter.convert("F"))
