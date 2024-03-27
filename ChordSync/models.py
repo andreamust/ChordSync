@@ -1,11 +1,12 @@
 import lightning as L
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+
+#
 from lightning.pytorch.utilities.types import OptimizerLRScheduler
 from torch.optim.optimizer import Optimizer
 from torchaudio.models import Conformer
-from utils.torch_utils import PositionalEncoding, smooth_probabilities
+from utils.torch_utils import PositionalEncoding
 
 
 class ConvolutionalConformer(L.LightningModule):
@@ -15,19 +16,28 @@ class ConvolutionalConformer(L.LightningModule):
 
     def __init__(
         self,
-        num_classes_chord: int,
+        vocabularies: dict,
         min_learning_rate: float,
         max_learning_rate: float,
+        criterion: nn.Module,
+        prediction_mode: list[str] = ["simplified"],
+        convolution: bool = False,
         **kwargs,
     ):
         super().__init__()
+
+        # prediction modes
+        self.prediction_mode = prediction_mode
 
         # setup learning rate
         self.min_learning_rate = min_learning_rate
         self.max_learning_rate = max_learning_rate
 
-        # num  classes
-        self.num_classes_chord = num_classes_chord
+        # vocabularies
+        self.vocabularies = vocabularies
+
+        # loss
+        self.loss = criterion
 
         # positional encoding
         self.positional_encoding = PositionalEncoding(
@@ -41,18 +51,22 @@ class ConvolutionalConformer(L.LightningModule):
         self.conformer_dimension = self.conformer_kwargs.get("input_dim", 128)
 
         # convolution layers
-        self.convolution = nn.Sequential(
-            nn.Conv2d(
-                in_channels=1,
-                out_channels=1,
-                kernel_size=(3, 3),
-                padding=(1, 1),
-                stride=(1, 1),
-            ),
-            nn.LeakyReLU(negative_slope=0.3),
-            nn.MaxPool2d(kernel_size=(2, 1), stride=(2, 1), padding=(0, 0)),
-            nn.Dropout(p=0.4),
-        )
+        self.convolution = None
+
+        if convolution:
+            # convolution layers
+            self.convolution = nn.Sequential(
+                nn.Conv2d(
+                    in_channels=1,
+                    out_channels=1,
+                    kernel_size=(3, 3),
+                    padding=(1, 1),
+                    stride=(1, 1),
+                ),
+                nn.LeakyReLU(negative_slope=0.3),
+                nn.MaxPool2d(kernel_size=(2, 1), stride=(2, 1), padding=(0, 0)),
+                nn.Dropout(p=0.4),
+            )
 
         # adapt dimensionality for the first
         self.fully_connected_preconformer = nn.Sequential(
@@ -63,12 +77,18 @@ class ConvolutionalConformer(L.LightningModule):
         # convolution layers
         self.conformer_encoder = Conformer(**self.conformer_kwargs)
 
-        # fully connected
-        self.fully_connected_boundaries = nn.Linear(
-            self.conformer_dimension, self.num_classes_chord
-        )
+        # dynamically create fully connected layers as self.fully_connected_{mode}
+        for mode in self.prediction_mode:
+            setattr(
+                self,
+                f"fully_connected_{mode}",
+                nn.Linear(self.conformer_dimension, self.vocabularies[mode]),
+            )
 
     def forward(self, x):
+
+        # itialize outputs
+        outputs = {}
 
         # define durations
         durations = torch.full(
@@ -78,16 +98,20 @@ class ConvolutionalConformer(L.LightningModule):
             device=self.device,
         )
 
-        # conformer
-        x = x.squeeze(1).permute(0, 2, 1)
-        x = self.positional_encoding(x)
-        x = x.permute(0, 2, 1)
-        x = x.unsqueeze(1)
-        convolution = self.convolution(x)
+        # convolution
+        if self.convolution:
+            # x = x.squeeze(1).permute(0, 2, 1)
+            # x = self.positional_encoding(x)
+            # x = x.permute(0, 2, 1)
+            # x = x.unsqueeze(1)
+            convolution = self.convolution(x)
 
-        # reshape for conformer (B, T, N)
-        convolution = convolution.squeeze()
-        convolution = convolution.permute(0, 2, 1)
+            # reshape for conformer (B, T, N)
+            convolution = convolution.squeeze()
+            x = convolution.permute(0, 2, 1)
+
+        # positional encoding
+        x = self.positional_encoding(x)
 
         # fully connected
         fc_preconformer = self.fully_connected_preconformer(convolution)
@@ -96,10 +120,10 @@ class ConvolutionalConformer(L.LightningModule):
         conformer_encoder, _ = self.conformer_encoder(fc_preconformer, durations)
 
         # fully connected
-        y_pred_boundaries = self.fully_connected_boundaries(conformer_encoder)
-        # y_pred_boundaries = torch.sigmoid(y_pred_boundaries)
+        for mode in self.prediction_mode:
+            outputs[mode] = getattr(self, f"fully_connected_{mode}")(conformer_encoder)
 
-        return y_pred_boundaries.squeeze()
+        return outputs
 
     def configure_optimizers(self) -> OptimizerLRScheduler | Optimizer | None | dict:
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.max_learning_rate)
@@ -117,55 +141,20 @@ class ConvolutionalConformer(L.LightningModule):
         alignment_evaluation = None
         # get outputs
         x, y = batch
-        # y.shape = torch.Size([batch, len, 10])
-        (
-            simplified,
-            majmin,
-            _,
-            _,
-            onset_sequence,
-            simplified_sequence,
-            majmin_sequence,
-            *_,
-        ) = torch.split(y, 1, dim=2)
-
-        # convert to long and squeeze
-        simplified = simplified.type(torch.long).squeeze(-1)
-        simplified_sequence = simplified_sequence.type(torch.long).squeeze(-1)
-        onset_sequence = onset_sequence.type(torch.float).squeeze(-1)
-        majmin = simplified
-        majmin_sequence = simplified_sequence
 
         # reshape inputs
         x = x.float()
 
         # forward pass
-        out_majmin = self(x)
-        out_majmin = smooth_probabilities(out_majmin, majmin_sequence, sigma=0.7)
-        out_majmin = out_majmin.permute(0, 2, 1)
+        outputs = self(x)
 
         # calculate loss
-        loss = F.cross_entropy(out_majmin, majmin_sequence)
+        losses = self.loss(outputs, y)
 
-        # out_boundaries = torch.sigmoid(out_boundaries)
+        # if mireval:
+        #     # mireval metrics
+        #     alignment_evaluation = self.alignment_evaluation.evaluate(
+        #         out_majmin, majmin_sequence, onset_sequence
+        #     )
 
-        if mireval:
-            # mireval metrics
-            alignment_evaluation = self.alignment_evaluation.evaluate(
-                out_majmin, majmin_sequence, onset_sequence
-            )
-
-        # group targets outputs and losses
-        targets = {
-            "simplified": simplified,
-            "onset_sequence": onset_sequence,
-            "majmin": majmin,
-        }
-        outputs = {
-            "out_majmin": out_majmin,
-        }
-        losses = {
-            "loss": loss,
-        }
-
-        return targets, outputs, losses, alignment_evaluation
+        return y, outputs, losses, alignment_evaluation
