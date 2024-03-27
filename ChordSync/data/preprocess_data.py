@@ -437,7 +437,7 @@ if __name__ == "__main__":
 
     mel_spectrogram = MelSpectrogram(
         sample_rate=22_050, n_fft=2048, hop_length=1024, n_mels=128
-    ).to("cuda")
+    ).to("cpu")
 
     parser = ArgumentParser()
     parser.add_argument("--audio_path", type=str, default=Paths.audio.value)
@@ -446,9 +446,9 @@ if __name__ == "__main__":
     parser.add_argument("--excerpt_per_song", type=int, default=25)
     parser.add_argument("--excerpt_distance", type=int, default=13)
     parser.add_argument("--cache_name", type=str, default="mel_dict")
-    parser.add_argument("--device", type=str, default="cuda")
+    parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--transform", type=str, default=mel_spectrogram)
-    parser.add_argument("--num_workers", type=int, default=8)
+    parser.add_argument("--num_workers", type=int, default=4)
 
     args = parser.parse_args()
 

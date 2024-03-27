@@ -6,7 +6,6 @@ import torchmetrics
 from data.choco_audio_datamodule import ChocoAudioDataModule
 from lightning.pytorch.callbacks import LearningRateMonitor
 from lightning.pytorch.loggers import WandbLogger
-from sympy import convolution
 
 import wandb
 from models import ConformerModel  # type: ignore
@@ -55,7 +54,7 @@ class MultiConformer(ConformerModel):
     def training_step(self, batch, batch_idx):
         # get outputs and losses
         targets, outputs, losses, alignment_evaluation = self._shared_step(
-            batch, batch_idx, mireval=True
+            batch, batch_idx, mireval=False
         )
 
         # get mireval evaluations
@@ -82,12 +81,12 @@ class MultiConformer(ConformerModel):
     def validation_step(self, batch, batch_idx):
         # get outputs and losses
         targets, outputs, losses, alignment_evaluation = self._shared_step(
-            batch, batch_idx, mireval=True
+            batch, batch_idx, mireval=False
         )
 
         # get mireval evaluations
         if alignment_evaluation is not None:
-            absolute_error, percentage_correct = alignment_evaluation
+            absolute_error, percentage_correct = alignment_evaluation  # type: ignore
 
         # log loss
         for loss in losses:
