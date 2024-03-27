@@ -87,7 +87,7 @@ class ConformerModel(L.LightningModule):
             setattr(
                 self,
                 f"fully_connected_{mode}",
-                nn.Linear(self.conformer_dimension, self.vocabularies[mode]),
+                nn.Linear(self.conformer_dimension, self.vocabularies[mode] + 1),
             )
 
     def forward(self, x):
@@ -122,7 +122,9 @@ class ConformerModel(L.LightningModule):
 
         # fully connected
         for mode in self.prediction_mode:
-            outputs[mode] = getattr(self, f"fully_connected_{mode}")(conformer_encoder)
+            outputs[mode] = getattr(self, f"fully_connected_{mode}")(
+                conformer_encoder
+            ).permute(0, 2, 1)
 
         return outputs
 

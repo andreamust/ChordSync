@@ -2,10 +2,10 @@ import lightning as L
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchmetrics
 from data.choco_audio_datamodule import ChocoAudioDataModule
 from lightning.pytorch.callbacks import LearningRateMonitor
 from lightning.pytorch.loggers import WandbLogger
+from torchmetrics.classification import MulticlassAccuracy
 
 import wandb
 from models import ConformerModel  # type: ignore
@@ -21,7 +21,7 @@ class ConformerLoss(nn.Module):
         # calculate loss
         loss = F.cross_entropy(predictions["simplified"], targets["simplified"])
 
-        return loss
+        return {"loss": loss}
 
 
 class MultiConformer(ConformerModel):
@@ -39,12 +39,11 @@ class MultiConformer(ConformerModel):
         self.save_hyperparameters(ignore=["criterion"])
 
         # init metrics for each of the prediction modes
-        self.metrics = {}
+        self.metrics = nn.ModuleDict()
         for mode in self.prediction_mode:
-            self.metrics[mode] = torchmetrics.Accuracy(
+            self.metrics[mode] = MulticlassAccuracy(
                 num_classes=self.vocabularies[mode] + 1,
-                task="multiclass",
-                average="macro",
+                # ignore_index=0
             )
 
         # self.alignment_evaluation = EvaluateAlignment(
@@ -95,7 +94,8 @@ class MultiConformer(ConformerModel):
         # calculate and log accuracy using pytorch lightning metrics
         for mode in self.prediction_mode:
             self.log(
-                f"val_acc_{mode}", self.metrics[mode](outputs[mode], targets[mode])
+                f"val_acc_{mode}",
+                self.metrics[mode](outputs[mode], targets[mode]).to(self.device),
             )
 
         # log mireval metrics
@@ -105,8 +105,8 @@ class MultiConformer(ConformerModel):
 
         # log samples
         if batch_idx == 0:
-            targets = targets["majmin"][1]
-            outs = outputs["majmin"][1]
+            targets = targets["simplified"][1]
+            outs = outputs["simplified"][1]
 
             # log the plot as an image to wandb
             image = wandb.Image(torch.sigmoid(outs), caption="val_predictions")
@@ -235,7 +235,7 @@ if __name__ == "__main__":
         max_learning_rate=3e-4,
         min_learning_rate=3e-4,
         max_epochs=150,
-        batch_size=128,
+        batch_size=64,
         num_workers=16,
         log_every_n_steps=10,
         check_val_every_n_epoch=5,
