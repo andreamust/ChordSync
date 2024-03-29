@@ -109,8 +109,16 @@ class MultiConformer(ConformerModel):
             outs = outputs["simplified"][1]
 
             # log the plot as an image to wandb
-            image = wandb.Image(torch.sigmoid(outs), caption="val_predictions")
+            image = wandb.Image(torch.softmax(outs, dim=0), caption="val_predictions")
             wandb.log({"val_predictions": image})
+
+            image = wandb.Image(
+                torch.eye(self.vocabularies["simplified"] + 1, device=targets.device)[
+                    targets
+                ].T,
+                caption="val_targets",
+            )
+            wandb.log({"val_targets": image})
 
             print("targets", targets)
             print("outs", outs.argmax(0))
@@ -152,6 +160,7 @@ def main(
         data_path,
         batch_size=batch_size,
         num_workers=num_workers,
+        augmentation=False,
     )
     print(f"Dataset size: {len(data_module)}")
 

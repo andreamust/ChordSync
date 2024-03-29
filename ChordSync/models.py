@@ -1,8 +1,6 @@
 import lightning as L
 import torch
 import torch.nn as nn
-
-#
 from lightning.pytorch.utilities.types import OptimizerLRScheduler
 from torch.optim.optimizer import Optimizer
 from torchaudio.models import Conformer
@@ -46,11 +44,6 @@ class ConformerModel(L.LightningModule):
         self.conformer_dimension = self.conformer_kwargs["input_dim"]
         self.input_dim = 128
 
-        # positional encoding
-        self.positional_encoding = PositionalEncoding(
-            self.conformer_dimension, dropout=0.2
-        )
-
         # convolution layers
         self.convolution = None
 
@@ -72,6 +65,11 @@ class ConformerModel(L.LightningModule):
                 nn.Dropout(p=0.4),
             )
 
+        # positional encoding
+        self.positional_encoding = PositionalEncoding(
+            self.conformer_dimension, dropout=0.2
+        )
+
         # adapt dimensionality for the first
         self.fully_connected_preconformer = nn.Sequential(
             nn.Linear(self.input_dim, self.conformer_dimension),
@@ -87,7 +85,10 @@ class ConformerModel(L.LightningModule):
             setattr(
                 self,
                 f"fully_connected_{mode}",
-                nn.Linear(self.conformer_dimension, self.vocabularies[mode] + 1),
+                nn.Sequential(
+                    nn.Linear(self.conformer_dimension, self.vocabularies[mode] + 1),
+                    # nn.LogSoftmax(dim=-1),
+                ),
             )
 
     def forward(self, x):
@@ -154,10 +155,10 @@ class ConformerModel(L.LightningModule):
         # calculate loss
         losses = self.loss(outputs, y)
 
-        # if mireval:
-        #     # mireval metrics
-        #     alignment_evaluation = self.alignment_evaluation.evaluate(
-        #         out_majmin, majmin_sequence, onset_sequence
-        #     )
+        if mireval:
+            # mireval metrics
+            alignment_evaluation = self.alignment_evaluation.evaluate(
+                outputs["simplified"], y["simplified"], y["simplified_symbols"]
+            )
 
         return y, outputs, losses, alignment_evaluation
