@@ -121,7 +121,7 @@ class ChocoAudioDataModule(L.LightningDataModule):
             "bass": len(NoteEncoder),
             "mode": len(ModeEncoder),
             "majmin": len(MajminChordEncoder),
-            "onehot": 12,
+            "onehot": 1,
             "complete": 170,
         }
 
@@ -144,8 +144,8 @@ class ChocoAudioDataModule(L.LightningDataModule):
         excerpt_count = defaultdict(int)
         for track in self.data_path.glob("*.pt"):
             # # filter out jazz partitions
-            # if "jaah" in track.stem or "weimar" in track.stem:
-            #     continue
+            if "jaah" in track.stem or "weimar" in track.stem:
+                continue
             track_id = _get_exerpt_name(track.stem)
             excerpt_count[track_id] += 1
 
