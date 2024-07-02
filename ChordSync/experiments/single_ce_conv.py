@@ -9,7 +9,6 @@ import lightning as L
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import wandb
 
 #
 from data.choco_audio_datamodule import ChocoAudioDataModule
@@ -25,6 +24,8 @@ from utils.torch_utils import (
     smooth_probabilities,
     wrong_probabilities_loss,
 )
+
+import wandb
 
 
 class ForcedAlignmentLoss(nn.Module):

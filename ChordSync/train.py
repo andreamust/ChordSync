@@ -19,7 +19,7 @@ class ConformerLoss(nn.Module):
 
     def forward(self, predictions, targets):
         # calculate loss
-        loss = F.cross_entropy(predictions["simplified"], targets["simplified"])
+        loss = F.cross_entropy(predictions["root"], targets["root"])
 
         return {"loss": loss}
 
@@ -42,8 +42,7 @@ class MultiConformer(ConformerModel):
         self.metrics = nn.ModuleDict()
         for mode in self.prediction_mode:
             self.metrics[mode] = MulticlassAccuracy(
-                num_classes=self.vocabularies[mode] + 1,
-                # ignore_index=0
+                num_classes=self.vocabularies[mode] + 1
             )
 
         # self.alignment_evaluation = EvaluateAlignment(
@@ -105,15 +104,15 @@ class MultiConformer(ConformerModel):
 
         # log samples
         if batch_idx == 0:
-            targets = targets["simplified"][1]
-            outs = outputs["simplified"][1]
+            targets = targets["root"][1]
+            outs = outputs["root"][1]
 
             # log the plot as an image to wandb
             image = wandb.Image(torch.softmax(outs, dim=0), caption="val_predictions")
             wandb.log({"val_predictions": image})
 
             image = wandb.Image(
-                torch.eye(self.vocabularies["simplified"] + 1, device=targets.device)[
+                torch.eye(self.vocabularies["root"] + 1, device=targets.device)[
                     targets
                 ].T,
                 caption="val_targets",
@@ -137,6 +136,7 @@ def main(
     max_epochs: int,
     batch_size: int,
     num_workers: int,
+    prediction_mode: list[str] = ["simplified"],
     convolution: bool = False,
     log_every_n_steps: int = 1,
     check_val_every_n_epoch: int = 5,
@@ -201,7 +201,7 @@ def main(
         criterion=criterion,
         min_learning_rate=min_learning_rate,
         max_learning_rate=max_learning_rate,
-        prediction_mode=["simplified"],
+        prediction_mode=prediction_mode,
         **kwargs,
     )
 
@@ -237,8 +237,9 @@ if __name__ == "__main__":
     main(
         project_name="chord-sync",
         group_name="forced-alignment",
-        run_name="simplified",
+        run_name="root",
         data_path=DATA_PATH,
+        prediction_mode=["root"],
         convolution=False,
         criterion=ConformerLoss(),
         max_learning_rate=3e-4,

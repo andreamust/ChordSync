@@ -14,7 +14,7 @@ import numpy as np
 import torch
 from costants import Paths
 from jams_processing import JAMSProcessor
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, parallel_config
 from librosa import load
 from torch.utils.data import Dataset
 from torchaudio.transforms import MelSpectrogram, Resample
@@ -159,10 +159,16 @@ class ChocoAudioPreprocessor(Dataset):
 
         # apply transform
         if self.transform == "cqt":
+            bins_per_octave = 24
             signal = signal.numpy()
             signal = np.abs(
                 librosa.cqt(
-                    signal, sr=self.target_sample_rate, hop_length=self.hop_length
+                    signal,
+                    sr=self.target_sample_rate,
+                    hop_length=self.hop_length,
+                    bins_per_octave=bins_per_octave,
+                    n_bins=bins_per_octave * 6,
+                    fmin=librosa.note_to_hz("C1"),
                 )
             )
             signal = torch.from_numpy(signal).to(self.device)
@@ -273,7 +279,7 @@ class ChocoAudioPreprocessor(Dataset):
         song_list = self._create_song_list(distance=self.excerpt_distance)
         # make a deep copy of the song list
         song_list_copy = song_list.copy()
-        for song in song_list_copy:
+        for song in tqdm(song_list_copy):
             file_name = song["audio"].split(".")[0]
             onset = song["onset"]
             jams_path = self.jams_path / f"{file_name}.jams"
@@ -367,10 +373,11 @@ def _save_cache(dataset: Dataset, cache_path: Path, num_workers: int = 4):
             os.remove(cache_path / file)
 
     # cache the preprocessing results
-    Parallel(n_jobs=num_workers)(
-        delayed(_parallel_preprocess)(dataset, idx, cache_path)
-        for idx in tqdm(range(len(dataset)))  # type: ignore
-    )
+    with parallel_config(backend="threading", n_jobs=num_workers):
+        Parallel()(
+            delayed(_parallel_preprocess)(dataset, idx, cache_path)
+            for idx in tqdm(range(len(dataset)))  # type: ignore
+        )
 
 
 def preprocess_data(
@@ -379,6 +386,7 @@ def preprocess_data(
     max_sequence_length: int = 15,
     excerpt_per_song: int = 3,
     excerpt_distance: int = 30,
+    hop_length: int = 2048,
     cache_name: str = "cache_cqt_short",
     device: str | torch.device = "cuda",
     transform: str | torch.nn.Module | None = None,
@@ -417,6 +425,7 @@ def preprocess_data(
         max_sequence_length=max_sequence_length,
         excerpt_distance=excerpt_distance,
         excerpt_per_song=excerpt_per_song,
+        hop_length=hop_length,
         transform=transform,
         device=device,
     )
@@ -445,9 +454,10 @@ if __name__ == "__main__":
     parser.add_argument("--max_sequence_length", type=int, default=15)
     parser.add_argument("--excerpt_per_song", type=int, default=25)
     parser.add_argument("--excerpt_distance", type=int, default=13)
-    parser.add_argument("--cache_name", type=str, default="mel_dict")
+    parser.add_argument("--hop_length", type=int, default=2048)
+    parser.add_argument("--cache_name", type=str, default="cqt_dict_all")
     parser.add_argument("--device", type=str, default="cpu")
-    parser.add_argument("--transform", type=str, default=mel_spectrogram)
+    parser.add_argument("--transform", type=str, default="cqt")
     parser.add_argument("--num_workers", type=int, default=4)
 
     args = parser.parse_args()
@@ -458,6 +468,7 @@ if __name__ == "__main__":
         max_sequence_length=args.max_sequence_length,
         excerpt_distance=args.excerpt_distance,
         excerpt_per_song=args.excerpt_per_song,
+        hop_length=args.hop_length,
         cache_name=args.cache_name,
         transform=args.transform,
         device=args.device,
