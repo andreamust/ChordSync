@@ -221,7 +221,7 @@ def main(
 
 
 if __name__ == "__main__":
-    DATA_PATH = "/media/data/andrea/choco_audio/cache/mel_dict/"
+    DATA_PATH = "/media/data/andrea/choco_audio/cache/mel_dict_all/"
 
     CONFORMER_KWARGS = {
         "input_dim": 256,
