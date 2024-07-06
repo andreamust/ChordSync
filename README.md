@@ -53,7 +53,7 @@ python ChordSync/train.py
 To run the synchronisation on a new audio file, run:
 
 ```bash
-python ChordSync/sync.py --audio_file path/to/audio/file --model_path path/to/model --output_folder path/to/output/folder --device cpu
+python ChordSync/sync.py --audio_file path/to/audio/file --model_path models/chordsync_v.0.1.0.ckpt --output_folder path/to/output/folder --device cpu
 ```
 
 ## 📝 Citation
@@ -71,6 +71,12 @@ To cite this work, please use the following BibTeX entry:
     publisher={Sound and Music Computing Network},
     url={https://smcnetwork.org/smc2024/papers/SMC2024_paper_id205.pdf}
 }
+```
+
+Or use the following plain text citation:
+
+```
+A. Poltronieri, V. Presutti, and M. Rocamora, "ChordSync: A Conformer-based Audio-to-Chord Synchroniser," in Proceedings of the 2024 Sound and Music Computing Conference, July 2024, Porto, Portugal. Sound and Music Computing Network.
 ```
 
 ## License
