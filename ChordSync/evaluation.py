@@ -12,49 +12,6 @@ from torchaudio.models.decoder import ctc_decoder
 from utils.chord_utils import ChordDecoder, Encoding
 
 
-class EvaluateChord:
-    """
-    Evaluates the audio chord esitmation (ACE) using the chord module of mir_eval.
-    The class is used to evaluate the performances of a Deep Learning model and
-    to work with pytorch tensors.
-    """
-
-    def __init__(
-        self,
-        chord_prediction: torch.Tensor,
-        chord_onsets: torch.Tensor,
-        root_prediction: torch.Tensor | None = None,
-        mode_prediction: torch.Tensor | None = None,
-        majmin_prediction: torch.Tensor | None = None,
-        chord_target: torch.Tensor | None = None,
-        root_target: torch.Tensor | None = None,
-        mode_target: torch.Tensor | None = None,
-        majmin_target: torch.Tensor | None = None,
-        blank: int = 0,
-    ) -> None:
-        """
-        Initialize the class.
-        """
-        # set the blank token
-        self.blank = blank
-
-        # tensor of shape (batch_size, n_frames, n_chords)
-        self.chord_prediction = chord_prediction.permute(0, 2, 1)
-        self.root_prediction = (
-            root_prediction.permute(0, 2, 1) if root_prediction else None
-        )
-        self.mode_prediction = (
-            mode_prediction.permute(0, 2, 1) if mode_prediction else None
-        )
-        self.majmin_prediction = (
-            majmin_prediction.permute(0, 2, 1) if majmin_prediction else None
-        )
-
-        # tensor of shape (batch_size, n_frames)
-        self.chord_target = chord_target
-        self.chord_onsets = chord_onsets.detach().to("cpu")
-
-
 class EvaluateAlignment:
     """
     Evaluates the audio-to-score chord alignment using the alignment module of
@@ -612,15 +569,3 @@ if __name__ == "__main__":
 
     test_target = torch.tensor([[1, 0, 0, 0, 1, 0, 1, 0]])
     test_prediction = torch.tensor([[0.3, 0.1, 0.12, 0.1, 0.11, 0.13, 0.3, 0.1]])
-
-    # abc = EvaluateAlignment().evaluate_with_boundaries(
-    #     test_prediction, test_target, torch.tensor([[0.0, 0.5, 1.0]])
-    # )
-    # print(abc)
-
-    from scipy.signal import find_peaks
-
-    # create a test tensor of values from 0 to 1 with a step of 0.001
-    test = torch.tensor(
-        [[0.3285, 0.9931, 0.9931, 0.2131, 0.9931, 0.2131, 0.2131, 0.2131, 0.2131]]
-    )
