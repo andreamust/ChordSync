@@ -156,3 +156,4 @@ cython_debug/
 .vscode/
 wandb/*
 chord-sync/*
+models/chordsync_v.0.1.0.ckpt

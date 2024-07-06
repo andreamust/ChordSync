@@ -48,17 +48,30 @@ parameters described in the paper, run:
 python ChordSync/train.py
 ```
 
-<!-- ## 🧪 Testing the Model
-
-To be documented -->
-
 ## 🔁 Running the Synchronisation
 
-To be documented
+To run the synchronisation on a new audio file, run:
+
+```bash
+python ChordSync/sync.py --audio_file path/to/audio/file --model_path path/to/model --output_folder path/to/output/folder --device cpu
+```
 
 ## 📝 Citation
 
-Paper under review.
+To cite this work, please use the following BibTeX entry:
+
+```bibtex
+@inproceedings{poltronieri2024chordsync,
+  title={ChordSync: A Conformer-based Audio-to-Chord Synchroniser
+    author={Poltronieri, Andrea and Presutti, Valentina and Rocamora, Martín},
+    booktitle={Proceedings of the 2024 Sound and Music Computing Conference},
+    year={2024},
+    month={July},
+    location={Porto, Portugal},
+    publisher={Sound and Music Computing Network},
+    url={https://smcnetwork.org/smc2024/papers/SMC2024_paper_id205.pdf}
+}
+```
 
 ## License
 
@@ -83,3 +96,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+```
+
+```
