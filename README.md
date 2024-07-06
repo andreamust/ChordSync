@@ -1,7 +1,5 @@
 ![ChordSync](assets/cs_logo.png)
 
-# ChordSync
-
 Code for ChordSync, a conformer-based audio-to-chord synchroniser. The code is based on the paper "ChordSync: A Conformer-based Audio-to-Chord Synchroniser" presented at the 2024 Sound and Music Computing Conference, which is available [here](https://smcnetwork.org/smc2024/papers/SMC2024_paper_id205.pdf).
 
 The code contains both the code for re-training the model and reproducing the experiments presented in the paper and the code for running the synchronisation on new audio files.
