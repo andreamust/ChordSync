@@ -1,7 +1,8 @@
+![ChordSync](assets/cs_logo.png)
+
 # ChordSync
 
-Code for ChordSync, a conformer-based audio-to-chord synchroniser.
-This repository contains the code for the paper "ChordSync: A Conformer-based Audio-to-Chord Synchroniser" by A. Poltronieri, V. Presutti, and M. Rocamora at the 2024 Sound and Music Computing Conference.
+Code for ChordSync, a conformer-based audio-to-chord synchroniser. The code is based on the paper "ChordSync: A Conformer-based Audio-to-Chord Synchroniser" presented at the 2024 Sound and Music Computing Conference, which is available [here](https://smcnetwork.org/smc2024/papers/SMC2024_paper_id205.pdf).
 
 The code contains both the code for re-training the model and reproducing the experiments presented in the paper and the code for running the synchronisation on new audio files.
 
@@ -62,7 +63,7 @@ To cite this work, please use the following BibTeX entry:
 
 ```bibtex
 @inproceedings{poltronieri2024chordsync,
-  title={ChordSync: A Conformer-based Audio-to-Chord Synchroniser
+    title={ChordSync: A Conformer-based Audio-to-Chord Synchroniser},
     author={Poltronieri, Andrea and Presutti, Valentina and Rocamora, Martín},
     booktitle={Proceedings of the 2024 Sound and Music Computing Conference},
     year={2024},
